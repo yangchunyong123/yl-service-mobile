@@ -13,7 +13,10 @@ from .serializers import ChangePasswordSerializer, RegisterSerializer, TokenLogi
 from django.db import connection, connections
 from django.db.models import Q
 from django.http import HttpResponse, JsonResponse
+from django.conf import settings
+from django.core.cache import cache
 import json
+from urllib import parse, request, error
 from datetime import date, datetime
 
 
@@ -366,102 +369,544 @@ class ComplaintDetailView(APIView):
 
 
 class RoutingSheetQueryView(APIView):
-    """流转 单查询视图，根据序列号查询组件详细信息及合同客户信息。"""
+    """流转单查询视图，通过外部溯源接口查询组件详细信息。
+    
+    功能说明：
+        前端用户扫码提交组件序列号后，本视图负责：
+        1. 调用外部溯源系统登录接口获取访问令牌
+        2. 使用令牌调用溯源查询接口获取组件数据
+        3. 将返回的数据标准化后返回给前端
+    
+    外部接口依赖：
+        - TRACE_LOGIN_URL: 溯源系统登录接口
+        - TRACE_REFRESH_URL: Token刷新接口
+        - TRACE_QUERY_URL: 组件信息查询接口
+        - TRACE_LOGIN_USERNAME/PASSWORD: 溯源系统认证凭证
+    """
 
-    permission_classes = [IsAuthenticated]  # 需要身份验证
+    permission_classes = [IsAuthenticated]  # 需要用户登录后才能访问
 
     def get(self, request, *args, **kwargs):
-        """根据序列号查询组件的详细信息。"""
-        row = []
-        # 获取序列号参数（支持两种参数名）
+        """GET请求入口：根据序列号查询组件的详细信息。
+        
+        Token获取策略（优化版）：
+            1. 先从缓存中获取refresh_token
+            2. 使用refresh_token刷新access_token
+            3. 如果刷新失败，才调用登录接口获取新token
+        
+        Args:
+            request: HTTP请求对象
+            
+        Returns:
+            Response: 包含组件详细信息的JSON响应
+        """
+        # 从请求参数中获取组件序列号（支持两种参数名）
         serial_no = request.query_params.get('serial_no') or request.query_params.get('serial')
+        serial_no = ''.join(str(serial_no or '').split())
         if not serial_no:
             return Response({'detail': '序列号不能为空'}, status=status.HTTP_400_BAD_REQUEST)
-        try:
-            # 查询组件技术参数
-            with connections['DataBase'].cursor() as cursor:
-                cursor.execute(
-                    """
-                    SELECT iv_pmax,iv_voc,iv_isc,iv_vpm,iv_ipm,iv_ff,iv_eff,iv_surf_temp,iv_env_temp,cell_supdesc,cell_spec,jbox_supdesc,jbox_spec,eva_supdesc,
-                    eva_spec
-                    FROM poly115_poly_lixian_serial
-                    WHERE serial_nbr = %s
-                    ORDER BY _updated DESC
-                    LIMIT 1
-                    """,
-                    (serial_no,)
-                )
-            row = cursor.fetchone()
-        except Exception as e:
-            print('数据库报错：', e)
-            return Response({'detail': '数据库查询失败'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        if not row:
-            return Response({'detail': '记录不存在'}, status=status.HTTP_404_NOT_FOUND)
-        # 查询合同和客户信息
-        contract = self.contract_customer_query(serial_no)
-        print('contract', contract)
+        
+        # 步骤1：优先使用refresh_token刷新，失败则登录
+        access_token, refresh_token, error_msg = self._get_trace_token()
+        if error_msg:
+            return Response({'detail': error_msg}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        # 步骤2：使用令牌查询组件信息
+        query_payload, query_error = self._trace_query(serial_no, access_token, refresh_token)
+        if query_error:
+            return Response({'detail': query_error}, status=status.HTTP_502_BAD_GATEWAY)
+        
+        # 步骤3：将原始数据标准化为统一格式
+        component_details = self._normalize_component_details(query_payload, serial_no)
         return Response({
             'ret': True,
-            'component_details': {
-                # 电气参数
-                'pmax': row[0],  # 最大功率
-                'voc': row[1],  # 开路电压
-                'isc': row[2],  # 短路电流
-                'vmp': row[3],  # 最佳工作电压
-                'imp': row[4],  # 最佳工作电流
-                'ff': row[5],  # 填充因子
-                'eff': row[6],  # 转换效率
-                'temp': row[7],  # 表面温度
-                # 材料信息
-                'materials': {
-                    'cell': {'name': '', 'factory': row[9], 'model': row[8]},  # 电池片
-                    'film': {'name': '', 'factory': row[13], 'model': row[12]},  # EVA 膜
-                    'frame': {'name': '', 'factory': '', 'model': ''},  # 边框
-                    'junctionBox': {'name': '', 'factory': row[11], 'model': row[10]}  # 接线盒
-                },
-                # 业务信息
-                'business': {
-                    'contract': contract['contract'],  # 合同号
-                    'customer': contract['customer']  # 客户名称
-                }
-            }
+            'component_details': component_details
         })
 
-    def contract_customer_query(self, serial_no):
-        """根据组件序列号查询销售合同号和客户信息。
+    def _sanitize_url(self, raw_url):
+        """清理URL字符串，去除多余空白和反引号。
+        
+        Args:
+            raw_url: 原始URL字符串
             
+        Returns:
+            str: 清理后的URL字符串
+        """
+        return str(raw_url or '').strip().strip('`').strip()
+
+    def _http_json(self, url, method='GET', payload=None, headers=None):
+        """发起HTTP JSON请求的通用方法。
+        
+        Args:
+            url: 请求URL
+            method: HTTP方法，默认GET
+            payload: 请求体数据（字典格式）
+            headers: 额外的请求头
+            
+        Returns:
+            tuple: (HTTP状态码, 响应JSON数据字典)
+            
+        Note:
+            - 超时时间由settings.TRACE_HTTP_TIMEOUT控制
+            - 自动处理HTTP错误和JSON解析错误
+        """
+        # 设置请求头
+        request_headers = {}
+        # 只有POST/PUT/PATCH等有请求体的方法才需要Content-Type
+        if payload is not None and method != 'GET':
+            request_headers['Content-Type'] = 'application/json'
+        if headers:
+            request_headers.update(headers)
+        
+        # 如果有请求体数据，转换为JSON字节流
+        body = None
+        if payload is not None:
+            body = json.dumps(payload).encode('utf-8')
+        
+        # 创建请求对象
+        req = request.Request(url=url, data=body, headers=request_headers, method=method)
+        
+        # 打印请求信息
+        print(f"\n{'='*80}")
+        print(f"[HTTP请求] {method} {url}")
+        print(f"[请求头] {json.dumps({k: v if k != 'Authorization' else v[:50] + '...' for k, v in request_headers.items()}, ensure_ascii=False)}")
+        if body:
+            print(f"[请求体] {body.decode('utf-8')}")
+        
+        try:
+            # 发起请求并读取响应
+            with request.urlopen(req, timeout=settings.TRACE_HTTP_TIMEOUT) as resp:
+                content = resp.read().decode('utf-8')
+                status_code = resp.getcode()
+        except error.HTTPError as exc:
+            # 处理HTTP错误（4xx, 5xx）
+            content = exc.read().decode('utf-8', errors='ignore')
+            status_code = exc.code
+        except error.URLError as exc:
+            # 处理URL错误（包括超时）
+            reason = str(exc.reason)
+            print(f"[请求异常] URLError: {reason}")
+            if 'timed out' in reason.lower() or 'timeout' in reason.lower():
+                print(f"[建议] 溯源接口响应超时（当前超时{settings.TRACE_HTTP_TIMEOUT}秒），可能原因：")
+                print(f"  1. 网络延迟或服务器负载高")
+                print(f"  2. 查询的序列号数据量大，处理时间长")
+                print(f"  3. 可尝试增加 TRACE_HTTP_TIMEOUT 配置（当前值：{settings.TRACE_HTTP_TIMEOUT}）")
+            print(f"{'='*80}\n")
+            return 504, {}  # 504 Gateway Timeout
+        except Exception as e:
+            # 处理网络错误（超时、连接失败等）
+            error_msg = str(e)
+            print(f"[请求异常] {error_msg}")
+            if 'timed out' in error_msg.lower() or 'timeout' in error_msg.lower():
+                print(f"[建议] 溯源接口响应超时（当前超时{settings.TRACE_HTTP_TIMEOUT}秒）")
+            print(f"{'='*80}\n")
+            return 504, {}  # 504 Gateway Timeout
+        
+        # 打印响应信息
+        print(f"[响应状态] {status_code}")
+        print(f"[响应内容] {content[:500] if len(content) > 500 else content}")
+        if len(content) > 500:
+            print(f"[响应内容] ...(共{len(content)}字符)")
+        
+        # 解析JSON响应
+        try:
+            parsed_data = json.loads(content) if content else {}
+            print(f"[解析结果] 成功")
+            print(f"{'='*80}\n")
+            return status_code, parsed_data
+        except json.JSONDecodeError as e:
+            # JSON解析失败时返回空字典
+            print(f"[解析结果] 失败 - {str(e)}")
+            print(f"{'='*80}\n")
+            return status_code, {}
+
+    def _find_first(self, data, keys):
+        """递归查找嵌套数据结构中的第一个匹配键值。
+        
+        Args:
+            data: 待查找的数据（字典或列表）
+            keys: 要查找的键名列表（按优先级排序）
+            
+        Returns:
+            找到的第一个非空值，未找到返回空字符串
+            
+        Example:
+            # 在嵌套字典中查找access或access_token字段
+            _find_first({'token': {'access': 'abc'}}, ['access', 'access_token'])
+            # 返回: 'abc'
+        """
+        if isinstance(data, dict):
+            # 先查找当前层级的键
+            for key in keys:
+                value = data.get(key)
+                if value not in (None, ''):
+                    return value
+            # 再递归查找子字典中的键
+            for value in data.values():
+                found = self._find_first(value, keys)
+                if found not in (None, ''):
+                    return found
+        if isinstance(data, list):
+            # 递归查找列表中的每一项
+            for item in data:
+                found = self._find_first(item, keys)
+                if found not in (None, ''):
+                    return found
+        return ''
+
+    def _pick_dict(self, payload):
+        """从溯源接口响应中提取组件数据字典。
+        
+        支持多种响应结构：
+            1. 新结构: {'jhn_data': {'gz_data': [{组件数据}]}}
+            2. 旧结构: {'data': [{组件数据}]} 或 {'data': {组件数据}}
+            3. 顶层结构: {'xs_data': [...], 'jh_data': {...}}
+            4. 代工结构: {'dg_data': [{组件数据}]}
+        
+        Args:
+            payload: 溯源接口返回的完整响应数据
+            
+        Returns:
+            dict: 提取出的单条组件数据字典，未找到返回空字典
+        """
+        if not isinstance(payload, dict):
+            return {}
+        
+        # 优先尝试顶层 dg_data（代工数据）
+        dg_data = payload.get('dg_data')
+        if isinstance(dg_data, list) and dg_data:
+            return dg_data[0] if isinstance(dg_data[0], dict) else {}
+        
+        # 尝试 jhn_data 或 jh_data
+        data_container = payload.get('jhn_data') or payload.get('jh_data')
+        if isinstance(data_container, dict):
+            # 提取 gz_data
+            gz_data = data_container.get('gz_data')
+            if isinstance(gz_data, list) and gz_data:
+                return gz_data[0] if isinstance(gz_data[0], dict) else {}
+            elif isinstance(gz_data, dict):
+                return gz_data
+            
+            # 提取 dg_data（嵌套在 jh_data 中）
+            dg_data_nested = data_container.get('dg_data')
+            if isinstance(dg_data_nested, list) and dg_data_nested:
+                return dg_data_nested[0] if isinstance(dg_data_nested[0], dict) else {}
+        
+        # 兼容旧结构：data字段
+        data = payload.get('data')
+        if isinstance(data, list) and data:
+            return data[0] if isinstance(data[0], dict) else {}
+        if isinstance(data, dict):
+            return data
+        
+        return payload
+
+    def _get_trace_token(self):
+        """获取溯源系统访问令牌（优化版：优先refresh，失败则登录）。
+        
+        Token获取策略：
+            1. 从缓存中读取refresh_token
+            2. 使用refresh_token调用刷新接口获取新的access_token
+            3. 如果刷新失败，调用登录接口获取新的access_token和refresh_token
+            4. 将新的refresh_token保存到缓存（有效期30天）
+        
+        Returns:
+            tuple: (access_token, refresh_token, error_message)
+                   成功时error_message为空字符串
+        """
+        # 缓存键名
+        CACHE_KEY = 'trace_refresh_token'
+        
+        # 步骤1：尝试从缓存获取refresh_token
+        cached_refresh_token = cache.get(CACHE_KEY)
+        if cached_refresh_token:
+            print(f"[Token] 从缓存获取refresh_token，尝试刷新...")
+            new_access_token = self._trace_refresh(cached_refresh_token)
+            if new_access_token:
+                print(f"[Token] 刷新成功，使用新access_token")
+                return new_access_token, cached_refresh_token, ''
+            print(f"[Token] 刷新失败，尝试登录获取新token...")
+        
+        # 步骤2：刷新失败或无缓存，调用登录接口
+        access_token, refresh_token, login_error = self._trace_login()
+        if login_error:
+            return '', '', login_error
+        
+        # 步骤3：保存refresh_token到缓存（有效期30天）
+        if refresh_token:
+            cache.set(CACHE_KEY, refresh_token, timeout=60*60*24*30)  # 30天
+            print(f"[Token] 登录成功，refresh_token已保存到缓存（30天有效期）")
+        
+        return access_token, refresh_token, ''
+    
+    def _trace_login(self):
+        """调用溯源系统登录接口获取访问令牌（内部方法）。
+        
+        登录流程：
+            1. 从settings读取登录URL和凭证
+            2. 发送POST请求携带用户名密码
+            3. 从响应中提取access_token和refresh_token
+            
+        Returns:
+            tuple: (access_token, refresh_token, error_message)
+                   成功时error_message为空字符串
+        """
+        login_url = self._sanitize_url(settings.TRACE_LOGIN_URL)
+        if not login_url:
+            return '', '', '登录地址未配置'
+        username = settings.TRACE_LOGIN_USERNAME
+        password = settings.TRACE_LOGIN_PASSWORD
+        if not username or not password:
+            return '', '', '接口用户名或接口密码未配置'
+        
+        # 发送登录请求
+        status_code, payload = self._http_json(
+            login_url,
+            method='POST',
+            payload={'username': username, 'password': password}
+        )
+        if status_code >= 400:
+            msg = self._find_first(payload, ['msg', 'detail']) or '外部登录失败'
+            return '', '', msg
+        
+        # 提取token（支持多种字段名）
+        access_token = self._find_first(payload, ['access', 'access_token', 'token', 'jwt'])
+        refresh_token = self._find_first(payload, ['refresh', 'refresh_token'])
+        if not access_token:
+            return '', '', '外部登录成功但未返回 token'
+        return str(access_token), str(refresh_token or ''), ''
+
+    def _trace_refresh(self, refresh_token):
+        """调用溯源系统Token刷新接口获取新的access_token。
+        
+        Args:
+            refresh_token: 刷新令牌
+            
+        Returns:
+            str: 新的access_token，刷新失败返回空字符串
+        """
+        refresh_url = self._sanitize_url(settings.TRACE_REFRESH_URL)
+        if not refresh_url or not refresh_token:
+            return ''
+        
+        # 发送刷新请求
+        status_code, payload = self._http_json(
+            refresh_url,
+            method='POST',
+            payload={'refresh': refresh_token}
+        )
+        if status_code >= 400:
+            return ''
+        
+        # 提取新的access_token
+        access_token = self._find_first(payload, ['access', 'access_token', 'token', 'jwt'])
+        return str(access_token or '')
+
+    def _build_query_urls(self, query_url, serial_no):
+        """构建查询URL。
+        
+        只使用一种格式：query_params=序列号
+        
+        Args:
+            query_url: 配置的查询接口URL
+            serial_no: 组件序列号
+            
+        Returns:
+            list: URL列表（只有一个元素）
+        """
+        serial_text = str(serial_no)
+        serial_encoded = parse.quote(serial_text, safe='')
+        
+        # 获取基础URL（去掉查询参数）
+        if '?' in query_url:
+            base_url = query_url.split('?')[0]
+        else:
+            base_url = query_url.rstrip('/')
+        
+        # 只使用一种格式：query_params=序列号
+        return [f"{base_url}?query_params={serial_encoded}"]
+
+    def _trace_query(self, serial_no, access_token, refresh_token):
+        """调用溯源查询接口获取组件详细信息。
+        
+        查询流程：
+            1. 构建多种可能的URL格式（通过_build_query_urls）
+            2. 逐一尝试每个URL，直到找到返回有效数据的响应
+            3. 如果遇到401/403错误，自动刷新token后重试
+            4. 返回第一个成功的响应数据
+        
+        容错策略：
+            - 跳过5xx服务器错误的URL，继续尝试下一个
+            - 跳过业务code不符合预期的响应
+            - 记录最后一个响应的状态码和内容，用于错误提示
+        
         Args:
             serial_no: 组件序列号
-                
+            access_token: 访问令牌
+            refresh_token: 刷新令牌
+            
         Returns:
-            dict: {'contract': 合同号，'customer': 客户名称}
+            tuple: (response_payload, error_message)
+                   成功时error_message为空字符串
         """
-        # SQL 查询语句：从仓储管理系统联表查询合同和客户信息
-        sql = """
-            SELECT
-                c.contract_no AS 销售合同号,
-                c.customer AS 客户
-            FROM wms113_wh_yingli_wh_container a
-            LEFT JOIN wms113_wh_yingli_wh_combine b
-                ON a._key = b.container_key
-            LEFT JOIN wms113_wh_yingli_wh_delivery_batch c
-                ON a.batch_key = c._key
-            LEFT JOIN wms113_wh_yingli_wh_delivery_ord d
-                ON c.ord_key = d._key
-            LEFT JOIN wms113_wh_yingli_wh_pack_pallets e
-                ON b.pallet_key = e._key
-            LEFT JOIN wms113_wh_yingli_wh_assembly_status f
-                ON e._key = f.pallet_key
-            WHERE
-                f.serial_nbr = %s
+        query_url = self._sanitize_url(settings.TRACE_QUERY_URL)
+        if not query_url:
+            return {}, '接口查询地址未配置'
+        
+        # 构建认证头
+        auth_header = {
+            'Authorization': f"{settings.TRACE_AUTH_SCHEME} {access_token}"
+        }
+        
+        # 记录最后一次尝试的结果，用于最终错误提示
+        last_status_code = 500
+        last_payload = {}
+        
+        # 逐一尝试所有候选URL
+        for full_query_url in self._build_query_urls(query_url, serial_no):
+            # 发起查询请求
+            status_code, payload = self._http_json(full_query_url, method='GET', headers=auth_header)
+            
+            # 如果Token过期，刷新后重试
+            if status_code in (401, 403) and refresh_token:
+                new_access_token = self._trace_refresh(refresh_token)
+                if new_access_token:
+                    auth_header = {
+                        'Authorization': f"{settings.TRACE_AUTH_SCHEME} {new_access_token}"
+                    }
+                    status_code, payload = self._http_json(full_query_url, method='GET', headers=auth_header)
+            
+            # 记录当前结果
+            last_status_code = status_code
+            last_payload = payload
+            
+            # 跳过服务器错误，继续尝试下一个URL
+            if status_code >= 500:
+                continue
+            
+            # 检查业务code是否符合预期
+            if isinstance(payload, dict):
+                code = payload.get('code')
+                if code not in (None, 0, 200, 2000):
+                    continue
+            
+            # 提取数据，如果有效则直接返回
+            data = self._pick_dict(payload)
+            if data:
+                return payload, ''
+        
+        # 所有URL都尝试失败，使用最后一次结果构建错误信息
+        status_code = last_status_code
+        payload = last_payload
+        
+        if status_code >= 400:
+            # 根据HTTP状态码映射友好的错误提示
+            error_messages = {
+                400: '请求参数错误',
+                401: '认证失败，请重新登录',
+                403: '没有权限访问',
+                404: '序列号不存在',
+                500: '溯源系统内部错误，请联系管理员',
+                502: '溯源服务不可用',
+                503: '溯源服务维护中',
+                504: '溯源服务超时'
+            }
+            msg = self._find_first(payload, ['msg', 'detail']) or error_messages.get(status_code, f'外部查询失败(HTTP {status_code})')
+            return {}, msg
+        
+        # 检查业务code
+        if isinstance(payload, dict):
+            code = payload.get('code')
+            if code not in (None, 0, 200, 2000):
+                msg = payload.get('msg') or payload.get('detail') or f'外部查询失败(code={code})'
+                return {}, msg
+        
+        # 检查是否有有效数据
+        if not payload:
+            return {}, '未查询到记录'
+        if not self._pick_dict(payload):
+            return {}, '未查询到记录'
+        return payload, ''
+
+    def _get_value(self, data, keys, default=''):
+        """从数据字典中按优先级提取字段值。
+        
+        按 keys 列表的顺序依次查找，返回第一个非空值。
+        用于兼容溯源接口返回的不同字段命名风格。
+        
+        Args:
+            data: 数据字典
+            keys: 字段名列表（按优先级从高到低排序）
+            default: 默认值，未找到时返回
+            
+        Returns:
+            找到的字段值，或默认值
+            
+        Example:
+            _get_value({'serialNo': '123'}, ['serial_no', 'serialNo', '组件序列号'])
+            # 返回: '123'
         """
-        try:
-            with connections['DataBase'].cursor() as cursor:
-                cursor.execute(sql, (serial_no,))
-                row = cursor.fetchone()
-                return {
-                    'contract': row[0],
-                    'customer': row[1]
-                }
-        except Exception:
-            return Response({'detail': '数据库查询失败'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        if not isinstance(data, dict):
+            return default
+        for key in keys:
+            value = data.get(key)
+            if value not in (None, ''):
+                return value
+        return default
+
+    def _normalize_component_details(self, data, serial_no):
+        """根据前端需求提取组件详细信息。
+        
+        只返回前端需要的字段：
+        - 组件序列号、测试日期、功率档位、电流档位、EL等级、最终等级
+        - Pmax、ISC、VOC、IPM、VPM、FF
+        - 电池片厂家
+        """
+        record = self._pick_dict(data)
+        
+        # 如果存在 xs_data，合并销售数据字段
+        if isinstance(data, dict):
+            xs_data = data.get('xs_data')
+            if isinstance(xs_data, list) and xs_data:
+                xs_record = xs_data[0] if isinstance(xs_data[0], dict) else {}
+                if isinstance(record, dict):
+                    record = {**record, **xs_record}
+        
+        # 如果存在 wms_data，合并物料数据字段（电池片厂家信息）
+        if isinstance(data, dict):
+            wms_data = data.get('wms_data')
+            if isinstance(wms_data, list):
+                for item in wms_data:
+                    if isinstance(item, dict) and item.get('title') == '电池片':
+                        fields = item.get('fields')
+                        if isinstance(fields, list) and fields:
+                            wms_info = fields[0] if isinstance(fields[0], dict) else {}
+                            if isinstance(record, dict):
+                                record = {**record, **wms_info}
+                        break
+            elif isinstance(wms_data, dict):
+                fields = wms_data.get('fields')
+                if isinstance(fields, list) and fields:
+                    wms_info = fields[0] if isinstance(fields[0], dict) else {}
+                    if isinstance(record, dict):
+                        record = {**record, **wms_info}
+        
+        # 只返回前端需要的字段
+        return {
+            'serial_no': self._get_value(record, ['组件序列号', 'serial_no', 'serialNo'], serial_no),
+            'test_date': self._get_value(record, ['测试日期', 'test_date', 'testDate', 'iv_test_date']),
+            'power_grade': self._get_value(record, ['功率档位', '功率档', 'power_grade', 'powerGear', 'power_gear']),
+            'current_grade': self._get_value(record, ['电流挡位', '电流档位', '电流档', 'current_grade', 'currentGear', 'current_gear']),
+            'el_grade': self._get_value(record, ['EL等级', 'el_grade', 'elGrade', 'el_level']),
+            'final_grade': self._get_value(record, ['最终等级', 'final_grade', 'finalGrade']),
+            'pmax': self._get_value(record, ['Pmax', 'pmax', 'PMAX']),
+            'isc': self._get_value(record, ['ISC', 'isc']),
+            'voc': self._get_value(record, ['VOC', 'voc']),
+            'ipm': self._get_value(record, ['IPM', 'ipm', 'imp']),
+            'vpm': self._get_value(record, ['VPM', 'vpm', 'vmp']),
+            'ff': self._get_value(record, ['FF', 'ff']),
+            'battery_factory': self._get_value(record, ['电池片厂家', 'battery_factory', '电池片供应商', 'battery_supplier']),
+            # xs_data销售数据
+            'sales_contract_no': self._get_value(record, ['销售合同号', 'sales_contract_no', 'sales_contract_number', 'contract_no']),
+            'customer': self._get_value(record, ['客户', 'customer', 'customer_name'])
+        }

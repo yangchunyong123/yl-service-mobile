@@ -12,16 +12,10 @@ const searchValue = ref("");
 const quickActions = [
   { icon: "scan", text: "扫一扫", color: "#4facfe", route: "/scan-query" },
   {
-    icon: "orders-o",
-    text: "流转单",
-    color: "#43e97b",
-    route: "/scan-query?tab=0",
-  },
-  {
     icon: "bar-chart-o",
     text: "明细报表",
     color: "#fa709a",
-    route: "/scan-query?tab=1",
+    route: "/scan-query",
   },
 ];
 

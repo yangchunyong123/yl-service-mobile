@@ -196,9 +196,12 @@ export const updateComplaint = async (id, payload) => {
 
 // 根据序列号查询流转单信息，serialNo：序列号
 export const getRoutingSheet = async serialNo => {
+  const normalizedSerialNo = String(serialNo || '')
+    .replace(/\s+/g, '')
+    .trim()
   const res = await service.get('/routing-sheet/', {
     params: {
-      serial_no: serialNo
+      serial_no: normalizedSerialNo
     }
   })
   return res

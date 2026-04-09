@@ -163,6 +163,15 @@ MEDIA_URL = '/media/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# 缓存配置（用于存储溯源系统refresh_token）
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'trace-token-cache',
+        'TIMEOUT': 60 * 60 * 24 * 30,  # 30天
+    }
+}
+
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'sales.authentication.AfterSalesJWTAuthentication',
@@ -186,10 +195,10 @@ CORS_ALLOWED_ORIGINS = [
     'http://127.0.0.1:5173',
 ]
 
-TRACE_API_BASE_URL = os.getenv('TRACE_API_BASE_URL', 'http://172.25.1.29:8300')
-TRACE_LOGIN_PATH = os.getenv('TRACE_LOGIN_PATH', '/api/login/')
-TRACE_QUERY_PATH = os.getenv('TRACE_QUERY_PATH', '/api/suyuan-query/')
-TRACE_LOGIN_USERNAME = os.getenv('TRACE_LOGIN_USERNAME', '')
-TRACE_LOGIN_PASSWORD = os.getenv('TRACE_LOGIN_PASSWORD', '')
-TRACE_AUTH_SCHEME = os.getenv('TRACE_AUTH_SCHEME', 'JWTFY')
-TRACE_HTTP_TIMEOUT = int(os.getenv('TRACE_HTTP_TIMEOUT', '10'))
+TRACE_LOGIN_URL = os.getenv('TRACE_LOGIN_URL', 'http://172.25.1.29:8300/api/login/')
+TRACE_REFRESH_URL = os.getenv('TRACE_REFRESH_URL', 'http://172.25.1.29:8300/token/refresh/')
+TRACE_QUERY_URL = os.getenv('TRACE_QUERY_URL', 'http://172.25.1.29:8300/api/suyuan-query/?query_params=')
+TRACE_LOGIN_USERNAME = os.getenv('TRACE_LOGIN_USERNAME', 'yladmim')  # 请替换为实际的溯源系统用户名
+TRACE_LOGIN_PASSWORD = os.getenv('TRACE_LOGIN_PASSWORD', 'admin123456')  # 请替换为实际的溯源系统密码
+TRACE_AUTH_SCHEME = os.getenv('TRACE_AUTH_SCHEME', 'JWTYF')
+TRACE_HTTP_TIMEOUT = int(os.getenv('TRACE_HTTP_TIMEOUT', '60'))  # 增加到60秒，避免超时
