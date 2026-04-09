@@ -16,6 +16,11 @@ from django.http import HttpResponse, JsonResponse
 from django.conf import settings
 from django.core.cache import cache
 import json
+import hashlib
+import time
+import random
+import string
+import requests
 from urllib import parse, request, error
 from datetime import date, datetime
 
@@ -910,3 +915,64 @@ class RoutingSheetQueryView(APIView):
             'sales_contract_no': self._get_value(record, ['销售合同号', 'sales_contract_no', 'sales_contract_number', 'contract_no']),
             'customer': self._get_value(record, ['客户', 'customer', 'customer_name'])
         }
+
+class WeComJSConfigView(APIView):
+    """
+    企业微信 JS-SDK 配置接口，生成 wx.config 需要的 signature 等参数。
+    """
+    permission_classes = [IsAuthenticated]  # 需要用户登录后才能访问
+
+    def get(self, request, *args, **kwargs):
+        url = request.query_params.get('url')
+        if not url:
+            return Response({'ret': False, 'msg': '缺少 url 参数'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # 去掉 url 的 # 后面的部分
+        url = url.split('#')[0]
+
+        corp_id = getattr(settings, 'WECOM_CORP_ID', None)
+        corp_secret = getattr(settings, 'WECOM_CORP_SECRET', None)
+
+        if not corp_id or not corp_secret:
+            return Response({'ret': False, 'msg': '企业微信配置缺失'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        # 1. 获取 access_token (缓存2小时)
+        access_token = cache.get('wecom_access_token')
+        if not access_token:
+            token_url = f"https://qyapi.weixin.qq.com/cgi-bin/gettoken?corpid={corp_id}&corpsecret={corp_secret}"
+            resp = requests.get(token_url).json()
+            if resp.get('errcode') == 0:
+                access_token = resp.get('access_token')
+                cache.set('wecom_access_token', access_token, 7000)
+            else:
+                return Response({'ret': False, 'msg': f"获取access_token失败: {resp.get('errmsg')}"})
+
+        # 2. 获取 jsapi_ticket (缓存2小时)
+        jsapi_ticket = cache.get('wecom_jsapi_ticket')
+        if not jsapi_ticket:
+            ticket_url = f"https://qyapi.weixin.qq.com/cgi-bin/get_jsapi_ticket?access_token={access_token}"
+            resp = requests.get(ticket_url).json()
+            if resp.get('errcode') == 0:
+                jsapi_ticket = resp.get('ticket')
+                cache.set('wecom_jsapi_ticket', jsapi_ticket, 7000)
+            else:
+                return Response({'ret': False, 'msg': f"获取jsapi_ticket失败: {resp.get('errmsg')}"})
+
+        # 3. 生成签名
+        noncestr = ''.join(random.choices(string.ascii_letters + string.digits, k=16))
+        timestamp = int(time.time())
+        
+        # 参数必须按字典序排序
+        sign_str = f"jsapi_ticket={jsapi_ticket}&noncestr={noncestr}&timestamp={timestamp}&url={url}"
+        signature = hashlib.sha1(sign_str.encode('utf-8')).hexdigest()
+
+        return Response({
+            'ret': True,
+            'config': {
+                'appId': corp_id,
+                'timestamp': timestamp,
+                'nonceStr': noncestr,
+                'signature': signature,
+            }
+        })
+

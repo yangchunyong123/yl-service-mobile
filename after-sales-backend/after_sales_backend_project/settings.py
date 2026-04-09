@@ -202,3 +202,7 @@ TRACE_LOGIN_USERNAME = os.getenv('TRACE_LOGIN_USERNAME', 'yladmim')  # 请替换
 TRACE_LOGIN_PASSWORD = os.getenv('TRACE_LOGIN_PASSWORD', 'admin123456')  # 请替换为实际的溯源系统密码
 TRACE_AUTH_SCHEME = os.getenv('TRACE_AUTH_SCHEME', 'JWTYF')
 TRACE_HTTP_TIMEOUT = int(os.getenv('TRACE_HTTP_TIMEOUT', '60'))  # 增加到60秒，避免超时
+
+# 企业微信配置
+WECOM_CORP_ID = os.getenv('WECOM_CORP_ID', 'your_corp_id_here')
+WECOM_CORP_SECRET = os.getenv('WECOM_CORP_SECRET', 'your_corp_secret_here')

@@ -225,4 +225,12 @@ export const getLocalUserInfo = () => {
   }
 }
 
+// 获取企业微信 JS-SDK 配置
+export const getWeComJSConfig = async url => {
+  const res = await service.get('/wecom-js-config/', {
+    params: { url }
+  })
+  return res
+}
+
 export default service

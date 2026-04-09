@@ -3,6 +3,7 @@ import { ref, onMounted, computed } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { showToast } from "vant";
 import { getRoutingSheet } from "@/api";
+import { initWeComConfig, scanQRCode } from "@/utils/wecom";
 
 // 路由实例与参数
 const router = useRouter();
@@ -40,11 +41,18 @@ const createDefaultComponentDetails = () => ({
 });
 
 // 根据路由参数初始化查询参数
-onMounted(() => {
+onMounted(async () => {
   const serialNo = route.query.serial_no || route.query.serial;
   if (serialNo) {
     searchValue.value = String(serialNo);
     onSearch();
+  }
+
+  // 初始化企业微信 JS-SDK
+  try {
+    await initWeComConfig(['scanQRCode'])
+  } catch (error) {
+    console.error('JS-SDK 初始化失败:', error)
   }
 });
 
@@ -227,13 +235,17 @@ const onSearch = async () => {
 };
 
 // 扫码获取序列号
-const onScan = () => {
+const onScan = async () => {
   if (loading.value) return;
-  const scanResult = window.prompt("请粘贴或输入扫码结果");
-  if (!scanResult) return;
-  searchValue.value = String(scanResult).trim();
-  if (!searchValue.value) return;
-  onSearch();
+  try {
+    const scanResult = await scanQRCode();
+    if (!scanResult) return;
+    searchValue.value = String(scanResult).trim();
+    if (!searchValue.value) return;
+    onSearch();
+  } catch (error) {
+    showToast(error.message || '扫码失败');
+  }
 };
 
 // 导出明细报表

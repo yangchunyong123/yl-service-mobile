@@ -1,9 +1,10 @@
 <script setup>
-import { ref } from "vue";
+import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { showToast } from "vant";
 import { areaList } from "@vant/area-data";
 import { createComplaint, getLocalUserInfo } from "@/api";
+import { initWeComConfig, scanQRCode } from "@/utils/wecom";
 
 // 路由实例
 const router = useRouter();
@@ -126,10 +127,23 @@ const onSubmit = async () => {
   }
 };
 
+onMounted(async () => {
+  try {
+    await initWeComConfig(['scanQRCode'])
+  } catch (error) {
+    console.error('JS-SDK 初始化失败:', error)
+  }
+})
+
 // 扫码获取序列号
-const onScan = () => {
-  showToast("扫码功能待接入");
-  form.value.serialNo = "SN202310278888";
+const onScan = async (targetField = 'serialNo') => {
+  try {
+    const scanResult = await scanQRCode();
+    if (!scanResult) return;
+    form.value[targetField] = String(scanResult).trim();
+  } catch (error) {
+    showToast(error.message || '扫码失败');
+  }
 };
 </script>
 
@@ -153,7 +167,7 @@ const onScan = () => {
           label="组件序列号"
           placeholder="扫码或输入"
           right-icon="scan"
-          @click-right-icon="onScan"
+          @click-right-icon="() => onScan('serialNo')"
           :rules="[{ required: true, message: '必填' }]"
         />
         <van-field
@@ -237,6 +251,7 @@ const onScan = () => {
           label="换货序列号"
           placeholder="扫码或输入"
           right-icon="scan"
+          @click-right-icon="() => onScan('replaceSerialNo')"
         />
       </div>
 

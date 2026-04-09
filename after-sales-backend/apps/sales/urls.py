@@ -14,6 +14,7 @@ urlpatterns = [
     path('complaints/', views.ComplaintCreateView.as_view(), name='complaint_create'),
     path('complaints/<int:pk>/', views.ComplaintDetailView.as_view(), name='complaint_detail'),
     path('routing-sheet/', views.RoutingSheetQueryView.as_view(), name='routing_sheet_query'),
+    path('wecom-js-config/', views.WeComJSConfigView.as_view(), name='wecom_js_config'),
 ]
 # 添加这行 允许所有的media文件被访问
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
