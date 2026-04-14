@@ -4,7 +4,7 @@ from .models import After_sales_index_login, After_sales_Complaint
 
 class TokenLoginSerializer(serializers.Serializer):
     """登录接口序列化器，校验账号与密码字段。"""
-    username = serializers.CharField()
+    phone = serializers.CharField()
     password = serializers.CharField()
 
 
