@@ -48,15 +48,15 @@ class TokenLoginView(APIView):
         # 使用序列化器验证请求数据
         serializer = TokenLoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        username = serializer.validated_data['username']
+        phone = serializer.validated_data['phone']
         password = serializer.validated_data['password']
         try:
             # 从数据库查询用户信息
-            user = After_sales_index_login.objects.filter(username=username).first()
+            user = After_sales_index_login.objects.filter(phone=phone).first()
         except ProgrammingError:
             return Response({'detail': '该用户不存在'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         if not user:
-            return Response({'detail': '用户名或密码错误'}, status=status.HTTP_401_UNAUTHORIZED)
+            return Response({'detail': '手机号或密码错误'}, status=status.HTTP_401_UNAUTHORIZED)
         is_valid = False
         try:
             # 验证密码（哈希对比）
@@ -72,10 +72,11 @@ class TokenLoginView(APIView):
             except Exception:
                 pass
         if not is_valid:
-            return Response({'detail': '用户名或密码错误'}, status=status.HTTP_401_UNAUTHORIZED)
+            return Response({'detail': '手机号或密码错误'}, status=status.HTTP_401_UNAUTHORIZED)
         # 生成 JWT token
         refresh = RefreshToken()
         refresh['user_id'] = user.id
+        refresh['phone'] = user.phone
         refresh['username'] = user.username
         # 序列化用户信息
         user_data = UserProfileSerializer(user).data

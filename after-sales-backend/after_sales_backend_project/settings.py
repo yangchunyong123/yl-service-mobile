@@ -116,6 +116,12 @@ DATABASES = {
     },
 }
 
+if os.getenv('DJANGO_USE_SQLITE') == '1':
+    DATABASES['default'] = {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    }
+
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
@@ -204,6 +210,5 @@ TRACE_AUTH_SCHEME = os.getenv('TRACE_AUTH_SCHEME', 'JWTYF')
 TRACE_HTTP_TIMEOUT = int(os.getenv('TRACE_HTTP_TIMEOUT', '60'))  # 增加到60秒，避免超时
 
 # 企业微信配置
-WECOM_CORP_ID = os.getenv('WECOM_CORP_ID', 'ww31a96ec54147e689')
-WECOM_CORP_SECRET = os.getenv('WECOM_CORP_SECRET', '_YwnKf6t5i4xOOWA5cA70mVV-EuXYriMUdXKPKUCRqI')
-# WECOM_CORP_SECRET = os.getenv('WECOM_CORP_SECRET', 'KLcZY0UWNpx_rvZMr3XMmGNOpQ3aIQ5VOxFmXVFi2Hs')
+WECOM_CORP_ID = os.getenv('WECOM_CORP_ID', 'your_corp_id_here')
+WECOM_CORP_SECRET = os.getenv('WECOM_CORP_SECRET', 'your_corp_secret_here')

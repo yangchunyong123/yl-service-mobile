@@ -1,0 +1,4 @@
+- [x] `index.html` 中的 viewport 已经配置了禁止缩放属性。
+- [x] `Login.vue` 中表单变量和传递的 API 参数已改为 `phone`。
+- [x] `serializers.py` 中的 `TokenLoginSerializer` 包含 `phone` 字段且去除了 `username` 字段。
+- [x] `views.py` 中的 `TokenLoginView` 使用 `phone` 字段进行数据库查询，且生成 token 时使用了 `phone`。

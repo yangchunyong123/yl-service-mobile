@@ -9,7 +9,7 @@ import logoUrl from "@/assets/style/img/ylfwsylogo.png";
 const router = useRouter();
 const route = useRoute();
 // 表单输入数据
-const username = ref("");
+const phone = ref("");
 const password = ref("");
 const captcha = ref("");
 // 验证码图片与明文
@@ -109,7 +109,7 @@ const onSubmit = async () => {
   loading.value = true;
   try {
     await login({
-      username: username.value.trim(),
+      phone: phone.value.trim(),
       password: password.value,
     });
     showToast("登录成功");
@@ -138,10 +138,10 @@ const onSubmit = async () => {
     <van-form @submit="onSubmit" class="login-form">
       <div class="input-wrapper">
         <van-field
-          v-model="username"
-          name="username"
+          v-model="phone"
+          name="phone"
           placeholder="手机号"
-          :rules="[{ required: true, message: '请输入账号' }]"
+          :rules="[{ required: true, message: '请输入手机号' }]"
           class="custom-field"
         >
           <template #left-icon>
