@@ -23,6 +23,26 @@ import string
 import requests
 from urllib import parse, request, error
 from datetime import date, datetime
+import base64
+
+
+def decrypt_base64(encoded_str):
+    """对Base64编码的字符串进行解码，用于解密前端传输的密码。
+
+    Args:
+        encoded_str: Base64编码的字符串
+
+    Returns:
+        解码后的原始字符串
+    """
+    try:
+        # 先进行Base64解码，然后处理URL编码
+        decoded_bytes = base64.b64decode(encoded_str)
+        decoded_str = decoded_bytes.decode('utf-8')
+        return decoded_str
+    except Exception:
+        # 如果解码失败，返回原字符串（兼容未加密的情况）
+        return encoded_str
 
 
 class DateEncoder(json.JSONEncoder):
@@ -49,7 +69,8 @@ class TokenLoginView(APIView):
         serializer = TokenLoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         phone = serializer.validated_data['phone']
-        password = serializer.validated_data['password']
+        # 对密码进行Base64解码
+        password = decrypt_base64(serializer.validated_data['password'])
         try:
             # 从数据库查询用户信息
             user = After_sales_index_login.objects.filter(phone=phone).first()

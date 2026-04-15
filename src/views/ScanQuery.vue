@@ -189,9 +189,9 @@ const displayValue = (value) => value || "-";
 
 const materialRows = computed(() => [
   { label: "电池片", ...componentDetails.value.materials.cell },
-  { label: "胶膜", ...componentDetails.value.materials.film },
-  { label: "边框", ...componentDetails.value.materials.frame },
-  { label: "接线盒", ...componentDetails.value.materials.junctionBox },
+  // { label: "胶膜", ...componentDetails.value.materials.film },
+  // { label: "边框", ...componentDetails.value.materials.frame },
+  // { label: "接线盒", ...componentDetails.value.materials.junctionBox },
 ]);
 
 const queryInfoRows = computed(() => [
@@ -207,7 +207,7 @@ const queryInfoRows = computed(() => [
   { label: "IPM", value: componentDetails.value.imp },
   { label: "VPM", value: componentDetails.value.vmp },
   { label: "FF", value: componentDetails.value.ff },
-  { label: "电池片厂家", value: componentDetails.value.materials.cell.factory },
+  // { label: "电池片厂家", value: componentDetails.value.materials.cell.factory },
 ]);
 
 const onSearch = async () => {
@@ -325,12 +325,12 @@ const exportReport = () => {
                       displayValue(item.factory)
                     }}</span>
                   </div>
-                  <div class="mat-item">
+                  <!-- <div class="mat-item">
                     <span class="mat-label">型号</span>
                     <span class="mat-value">{{
                       displayValue(item.model)
                     }}</span>
-                  </div>
+                  </div> -->
                 </div>
               </div>
             </div>

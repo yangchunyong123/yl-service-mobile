@@ -19,6 +19,7 @@ const active = ref(0);
 <style scoped>
 .app-layout {
   min-height: 100vh;
+  padding-bottom: calc(50px + constant(safe-area-inset-bottom));
   padding-bottom: calc(50px + env(safe-area-inset-bottom));
 }
 .tech-tabbar {
@@ -27,7 +28,10 @@ const active = ref(0);
   left: 0;
   right: 0;
   z-index: 9999;
+  padding-bottom: constant(safe-area-inset-bottom);
   padding-bottom: env(safe-area-inset-bottom);
   box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.05);
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
 }
 </style>

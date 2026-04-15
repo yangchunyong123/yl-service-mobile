@@ -99,6 +99,14 @@ onMounted(() => {
   drawCaptcha();
 });
 
+// 对字符串进行Base64编码，用于密码加密传输
+const encryptBase64 = (str) => {
+  return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g,
+    function toSolidBytes(match, p1) {
+      return String.fromCharCode('0x' + p1);
+    }));
+};
+
 // 提交登录请求
 const onSubmit = async () => {
   if (captcha.value.trim() !== captchaCode.value) {
@@ -110,7 +118,7 @@ const onSubmit = async () => {
   try {
     await login({
       phone: phone.value.trim(),
-      password: password.value,
+      password: encryptBase64(password.value),
     });
     showToast("登录成功");
     const redirect = route.query.redirect || "/home";

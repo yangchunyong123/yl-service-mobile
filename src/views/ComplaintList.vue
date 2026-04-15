@@ -137,6 +137,7 @@ onMounted(() => {
         v-for="item in filteredComplaints"
         :key="item.id"
         class="complaint-card"
+        @click="onDetail(item.id)"
       >
         <div class="card-header">
           <span class="complaint-id">{{ item.serialNo || item.id }}</span>
@@ -170,7 +171,7 @@ onMounted(() => {
             plain
             round
             type="primary"
-            @click="onDetail(item.id)"
+            @click.stop
           >
             查看详情
           </van-button>
@@ -329,7 +330,8 @@ onMounted(() => {
 
 .fab-btn {
   position: fixed;
-  bottom: 80px;
+  bottom: calc(50px + constant(safe-area-inset-bottom) + 5px);
+  bottom: calc(50px + env(safe-area-inset-bottom) + 5px);
   right: 20px;
   width: 56px;
   height: 56px;
@@ -341,6 +343,10 @@ onMounted(() => {
   color: #fff;
   font-size: 28px;
   box-shadow: 0 4px 12px rgba(67, 100, 247, 0.4);
-  z-index: 100;
+  z-index: 999;
+}
+
+.fab-btn .van-icon {
+  margin-top: -2px;
 }
 </style>
