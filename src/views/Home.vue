@@ -65,9 +65,10 @@ const newsList = [
   <div class="home-dashboard">
     <!-- Top Search & Scan Area -->
     <div class="top-bar">
-      <div class="search-box">
-        <van-icon name="search" size="18" color="#fff" />
+      <div class="search-box" @click="$refs.searchInput.focus()">
+        <van-icon name="search" size="18" color="#fff" @click.stop="onSearch(searchValue)" />
         <input
+          ref="searchInput"
           type="text"
           v-model="searchValue"
           placeholder="搜索功能、服务"

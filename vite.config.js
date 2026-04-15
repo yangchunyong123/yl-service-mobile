@@ -21,5 +21,23 @@ export default defineConfig({
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url))
     }
-  }
+  },
+  server: {
+    host: '0.0.0.0',
+    port: 5173,
+    allowedHosts: [
+      'localhost',
+      '127.0.0.1',
+      'fw.yinglicloud.com',
+    ],
+     proxy: {
+      '/api': {
+        // target: 'http://host.docker.internal:8000', // Docker for Mac/Win
+        target: 'http://172.24.0.223:8000',     // 宿主机真实局域网 IP
+        changeOrigin: true,
+        secure: false, // 开发时允许自签名/HTTP
+        ws: false,
+      }
+    }
+  },
 })

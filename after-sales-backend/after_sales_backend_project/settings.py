@@ -85,14 +85,27 @@ WSGI_APPLICATION = 'after_sales_backend_project.wsgi.application'
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
 DATABASES = {
+    # 'default': {
+    #     'ENGINE': 'django.db.backends.mysql',
+    #     'NAME': 'after_sales',
+    #     'USER': 'root',
+    #     'PASSWORD': 'root',
+    #     'PORT': 33061,
+    #     'HOST': '127.0.0.1',
+    # },
     'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'after_sales',
-        'USER': 'root',
-        'PASSWORD': 'root',
-        'PORT': 33061,
-        'HOST': '127.0.0.1',
-    },
+            'ENGINE': 'mssql',
+            'NAME': 'after_sales',
+            'USER': 'sa',
+            'PASSWORD': 'Dev@4512',
+            'HOST': '172.25.0.114',
+            'PORT': '1433',  # 留空或设置为 SQL Server 的端口号，如果默认端口可留空
+            'OPTIONS': {
+                'driver': 'ODBC Driver 17 for SQL Server',  # 根据你的 SQL Server 版本选择合适的驱动
+                'TrustServerCertificate': 'yes',
+                'MARS_Connection': True,  # 多活动结果集支持
+            },
+        },
     # OA正式系统数据库
     'sqlserver_oa_ecology9': {
         'ENGINE': 'mssql',
@@ -106,14 +119,14 @@ DATABASES = {
             'MARS_Connection': True,  # 多活动结果集支持
         },
     },
-    'DataBase': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'syncdb',
-        'USER': 'root',
-        'PASSWORD': 'Password123@doris',
-        'PORT': 9030,
-        'HOST': '172.24.0.19',
-    },
+    # 'DataBase': {
+    #     'ENGINE': 'django.db.backends.mysql',
+    #     'NAME': 'syncdb',
+    #     'USER': 'root',
+    #     'PASSWORD': 'Password123@doris',
+    #     'PORT': 9030,
+    #     'HOST': '172.24.0.19',
+    # },
 }
 
 if os.getenv('DJANGO_USE_SQLITE') == '1':
@@ -199,6 +212,7 @@ CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:5173',
     'http://127.0.0.1:5173',
+    'http://fw.yinglicloud.com',
 ]
 
 TRACE_LOGIN_URL = os.getenv('TRACE_LOGIN_URL', 'http://172.25.1.29:8300/api/login/')
@@ -210,5 +224,6 @@ TRACE_AUTH_SCHEME = os.getenv('TRACE_AUTH_SCHEME', 'JWTYF')
 TRACE_HTTP_TIMEOUT = int(os.getenv('TRACE_HTTP_TIMEOUT', '60'))  # 增加到60秒，避免超时
 
 # 企业微信配置
-WECOM_CORP_ID = os.getenv('WECOM_CORP_ID', 'your_corp_id_here')
-WECOM_CORP_SECRET = os.getenv('WECOM_CORP_SECRET', 'your_corp_secret_here')
+WECOM_CORP_ID = os.getenv('WECOM_CORP_ID', 'ww31a96ec54147e689')
+# WECOM_CORP_SECRET = os.getenv('WECOM_CORP_SECRET', 'your_corp_secret_here')
+WECOM_CORP_SECRET = os.getenv('WECOM_CORP_SECRET', 'KLcZY0UWNpx_rvZMr3XMmGNOpQ3aIQ5VOxFmXVFi2Hs')

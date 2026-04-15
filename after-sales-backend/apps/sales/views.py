@@ -472,13 +472,6 @@ class RoutingSheetQueryView(APIView):
         # 创建请求对象
         req = request.Request(url=url, data=body, headers=request_headers, method=method)
         
-        # 打印请求信息
-        print(f"\n{'='*80}")
-        print(f"[HTTP请求] {method} {url}")
-        print(f"[请求头] {json.dumps({k: v if k != 'Authorization' else v[:50] + '...' for k, v in request_headers.items()}, ensure_ascii=False)}")
-        if body:
-            print(f"[请求体] {body.decode('utf-8')}")
-        
         try:
             # 发起请求并读取响应
             with request.urlopen(req, timeout=settings.TRACE_HTTP_TIMEOUT) as resp:
@@ -490,40 +483,17 @@ class RoutingSheetQueryView(APIView):
             status_code = exc.code
         except error.URLError as exc:
             # 处理URL错误（包括超时）
-            reason = str(exc.reason)
-            print(f"[请求异常] URLError: {reason}")
-            if 'timed out' in reason.lower() or 'timeout' in reason.lower():
-                print(f"[建议] 溯源接口响应超时（当前超时{settings.TRACE_HTTP_TIMEOUT}秒），可能原因：")
-                print(f"  1. 网络延迟或服务器负载高")
-                print(f"  2. 查询的序列号数据量大，处理时间长")
-                print(f"  3. 可尝试增加 TRACE_HTTP_TIMEOUT 配置（当前值：{settings.TRACE_HTTP_TIMEOUT}）")
-            print(f"{'='*80}\n")
             return 504, {}  # 504 Gateway Timeout
         except Exception as e:
             # 处理网络错误（超时、连接失败等）
-            error_msg = str(e)
-            print(f"[请求异常] {error_msg}")
-            if 'timed out' in error_msg.lower() or 'timeout' in error_msg.lower():
-                print(f"[建议] 溯源接口响应超时（当前超时{settings.TRACE_HTTP_TIMEOUT}秒）")
-            print(f"{'='*80}\n")
             return 504, {}  # 504 Gateway Timeout
-        
-        # 打印响应信息
-        print(f"[响应状态] {status_code}")
-        print(f"[响应内容] {content[:500] if len(content) > 500 else content}")
-        if len(content) > 500:
-            print(f"[响应内容] ...(共{len(content)}字符)")
         
         # 解析JSON响应
         try:
             parsed_data = json.loads(content) if content else {}
-            print(f"[解析结果] 成功")
-            print(f"{'='*80}\n")
             return status_code, parsed_data
         except json.JSONDecodeError as e:
             # JSON解析失败时返回空字典
-            print(f"[解析结果] 失败 - {str(e)}")
-            print(f"{'='*80}\n")
             return status_code, {}
 
     def _find_first(self, data, keys):
@@ -626,12 +596,9 @@ class RoutingSheetQueryView(APIView):
         # 步骤1：尝试从缓存获取refresh_token
         cached_refresh_token = cache.get(CACHE_KEY)
         if cached_refresh_token:
-            print(f"[Token] 从缓存获取refresh_token，尝试刷新...")
             new_access_token = self._trace_refresh(cached_refresh_token)
             if new_access_token:
-                print(f"[Token] 刷新成功，使用新access_token")
                 return new_access_token, cached_refresh_token, ''
-            print(f"[Token] 刷新失败，尝试登录获取新token...")
         
         # 步骤2：刷新失败或无缓存，调用登录接口
         access_token, refresh_token, login_error = self._trace_login()
@@ -641,7 +608,6 @@ class RoutingSheetQueryView(APIView):
         # 步骤3：保存refresh_token到缓存（有效期30天）
         if refresh_token:
             cache.set(CACHE_KEY, refresh_token, timeout=60*60*24*30)  # 30天
-            print(f"[Token] 登录成功，refresh_token已保存到缓存（30天有效期）")
         
         return access_token, refresh_token, ''
     

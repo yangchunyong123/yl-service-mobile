@@ -8,7 +8,8 @@ const REFRESH_TOKEN_KEY = 'refreshToken'
 const USER_INFO_KEY = 'userInfo'
 
 // 后端接口基础地址
-const API_BASE_URL = 'http://127.0.0.1:8000/api'
+// const API_BASE_URL = 'http://127.0.0.1:8000/api'
+const API_BASE_URL = '/api'
 
 // 业务接口请求实例
 const service = axios.create({
