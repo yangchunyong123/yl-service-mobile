@@ -1,0 +1,92 @@
+INFO 2026-04-15 15:07:02,629 autoreload 17280 15376 Watching for file changes with StatReloader
+INFO 2026-04-15 15:07:02,637 autoreload 9832 2296 Watching for file changes with StatReloader
+INFO 2026-04-15 15:08:13,439 autoreload 9832 2296 D:\vue\yl-service-mobile\after-sales-backend\after_sales_backend_project\settings.py changed, reloading.
+INFO 2026-04-15 15:08:14,054 autoreload 17280 15376 D:\vue\yl-service-mobile\after-sales-backend\after_sales_backend_project\settings.py changed, reloading.
+INFO 2026-04-15 15:08:17,348 autoreload 18180 10496 Watching for file changes with StatReloader
+INFO 2026-04-15 15:08:17,486 autoreload 3376 16712 Watching for file changes with StatReloader
+INFO 2026-04-15 15:08:45,701 autoreload 3376 16712 D:\vue\yl-service-mobile\after-sales-backend\after_sales_backend_project\urls.py changed, reloading.
+INFO 2026-04-15 15:08:46,077 autoreload 18180 10496 D:\vue\yl-service-mobile\after-sales-backend\after_sales_backend_project\urls.py changed, reloading.
+INFO 2026-04-15 15:08:47,024 autoreload 392 2128 Watching for file changes with StatReloader
+INFO 2026-04-15 15:08:47,420 autoreload 18192 5948 Watching for file changes with StatReloader
+INFO 2026-04-15 15:26:52,050 autoreload 16788 7656 Watching for file changes with StatReloader
+INFO 2026-04-15 15:27:30,332 autoreload 16788 7656 D:\vue\yl-service-mobile\after-sales-backend\after_sales_backend_project\urls.py changed, reloading.
+INFO 2026-04-15 15:27:31,683 autoreload 15392 13484 Watching for file changes with StatReloader
+INFO 2026-04-15 15:28:13,308 basehttp 15392 10420 "GET /api/complaints/ HTTP/1.1" 200 417
+INFO 2026-04-15 15:28:20,692 basehttp 15392 17364 "GET /api/complaints/ HTTP/1.1" 200 417
+INFO 2026-04-15 15:28:23,553 basehttp 15392 17488 "GET /api/complaints/ HTTP/1.1" 200 417
+INFO 2026-04-15 15:28:29,718 basehttp 15392 15856 "GET /api/complaints/ HTTP/1.1" 200 417
+INFO 2026-04-15 15:30:45,280 basehttp 15392 16748 "GET /api/complaints/ HTTP/1.1" 200 417
+INFO 2026-04-15 15:30:48,511 basehttp 15392 3740 "GET /api/complaints/ HTTP/1.1" 200 417
+INFO 2026-04-15 15:31:34,555 basehttp 15392 5152 "GET /api/complaints/ HTTP/1.1" 200 417
+INFO 2026-04-15 15:31:48,536 basehttp 15392 13140 "GET /api/complaints/?page=1&page_size=10 HTTP/1.1" 200 417
+INFO 2026-04-15 15:31:59,272 basehttp 15392 9132 "GET /api/complaints/ HTTP/1.1" 200 417
+INFO 2026-04-15 15:32:09,907 basehttp 15392 11780 "GET /api/complaints/?page=1&page_size=10 HTTP/1.1" 200 417
+INFO 2026-04-15 15:32:11,605 basehttp 15392 5604 "GET /api/complaints/?page=1&page_size=10 HTTP/1.1" 200 417
+INFO 2026-04-15 15:32:55,262 basehttp 15392 17968 "GET /api/complaints/?page=1&page_size=10 HTTP/1.1" 200 417
+INFO 2026-04-15 15:34:42,603 basehttp 15392 9464 "GET /api/complaints/?page=1&page_size=10 HTTP/1.1" 200 417
+INFO 2026-04-15 15:34:51,384 basehttp 15392 6504 "GET /api/complaints/?page=1&page_size=10 HTTP/1.1" 200 417
+INFO 2026-04-15 15:34:53,139 basehttp 15392 17668 "GET /api/complaints/1/ HTTP/1.1" 200 438
+INFO 2026-04-15 15:34:55,007 basehttp 15392 16708 "GET /api/complaints/?page=1&page_size=10 HTTP/1.1" 200 417
+INFO 2026-04-15 15:34:56,151 basehttp 15392 13476 "GET /api/complaints/1/ HTTP/1.1" 200 438
+INFO 2026-04-15 15:34:59,550 basehttp 15392 15672 "GET /api/complaints/?page=1&page_size=10 HTTP/1.1" 200 417
+INFO 2026-04-15 15:35:12,683 basehttp 15392 10452 "GET /api/profile/ HTTP/1.1" 200 180
+INFO 2026-04-15 15:35:53,549 basehttp 15392 14492 "GET /api/complaints/?page=1&page_size=10 HTTP/1.1" 200 417
+INFO 2026-04-15 15:35:54,353 basehttp 15392 9548 "GET /api/profile/ HTTP/1.1" 200 180
+INFO 2026-04-15 15:36:32,079 basehttp 15392 16300 "GET /api/profile/ HTTP/1.1" 200 180
+INFO 2026-04-15 15:36:48,330 basehttp 15392 16948 "GET /api/profile/ HTTP/1.1" 200 180
+INFO 2026-04-15 15:37:02,989 basehttp 15392 10348 "GET /api/complaints/?page=1&page_size=10 HTTP/1.1" 200 417
+INFO 2026-04-15 15:37:06,661 basehttp 15392 16356 "GET /api/complaints/?page=1&page_size=10 HTTP/1.1" 200 417
+INFO 2026-04-15 15:37:08,035 basehttp 15392 12272 "GET /api/profile/ HTTP/1.1" 200 180
+INFO 2026-04-15 15:37:20,927 basehttp 15392 8604 "GET /api/complaints/?page=1&page_size=10 HTTP/1.1" 200 417
+INFO 2026-04-15 15:37:25,825 basehttp 15392 13884 "GET /api/wecom-js-config/?url=https:%2F%2Ffw.yinglicloud.com%2Fscan-query HTTP/1.1" 200 160
+INFO 2026-04-15 15:37:56,350 basehttp 15392 14788 "GET /api/routing-sheet/?serial_no=252904050400872 HTTP/1.1" 200 417
+INFO 2026-04-15 15:38:17,231 basehttp 15392 9764 "GET /api/complaints/?page=1&page_size=10 HTTP/1.1" 200 417
+INFO 2026-04-16 09:46:33,277 basehttp 15392 2620 "POST /api/token/ HTTP/1.1" 200 783
+INFO 2026-04-16 09:46:39,148 basehttp 15392 12708 "GET /api/complaints/?page=1&page_size=10 HTTP/1.1" 200 417
+INFO 2026-04-16 09:47:42,456 basehttp 15392 5680 "GET /api/wecom-js-config/?url=https:%2F%2Ffw.yinglicloud.com%2Fcomplaint%2Fnew HTTP/1.1" 200 160
+INFO 2026-04-16 09:48:18,811 basehttp 15392 2248 "GET /api/complaints/?page=1&page_size=10 HTTP/1.1" 200 417
+INFO 2026-04-16 09:48:28,413 basehttp 15392 12596 "GET /api/complaints/1/ HTTP/1.1" 200 438
+INFO 2026-04-16 11:17:05,982 basehttp 15392 7332 "POST /api/token/ HTTP/1.1" 200 783
+INFO 2026-04-16 11:17:07,739 basehttp 15392 14192 "GET /api/complaints/?page=1&page_size=10 HTTP/1.1" 200 417
+INFO 2026-04-16 11:17:09,311 basehttp 15392 16732 "GET /api/profile/ HTTP/1.1" 200 180
+INFO 2026-04-16 11:17:10,746 basehttp 15392 14468 "GET /api/complaints/?page=1&page_size=10 HTTP/1.1" 200 417
+INFO 2026-04-16 11:17:19,752 basehttp 15392 18040 "GET /api/complaints/?page=1&page_size=10 HTTP/1.1" 200 417
+INFO 2026-04-16 11:17:21,753 basehttp 15392 14988 "GET /api/wecom-js-config/?url=https:%2F%2Ffw.yinglicloud.com%2Fscan-query HTTP/1.1" 200 160
+INFO 2026-04-16 11:17:41,479 basehttp 15392 7588 "GET /api/profile/ HTTP/1.1" 200 180
+INFO 2026-04-16 11:18:06,955 basehttp 15392 14712 "GET /api/complaints/?page=1&page_size=10 HTTP/1.1" 200 417
+INFO 2026-04-16 11:18:10,062 basehttp 15392 20260 "GET /api/complaints/?page=1&page_size=10 HTTP/1.1" 200 417
+INFO 2026-04-16 11:18:15,190 basehttp 15392 13340 "GET /api/profile/ HTTP/1.1" 200 180
+INFO 2026-04-16 11:18:17,040 basehttp 15392 16504 "GET /api/complaints/?page=1&page_size=10 HTTP/1.1" 200 417
+INFO 2026-04-16 13:14:30,018 basehttp 15392 16068 "POST /api/token/ HTTP/1.1" 200 783
+INFO 2026-04-16 13:17:46,763 basehttp 15392 16020 "GET /api/complaints/?page=1&page_size=10 HTTP/1.1" 200 417
+INFO 2026-04-16 13:20:12,054 basehttp 15392 11752 "GET /api/complaints/?page=1&page_size=10 HTTP/1.1" 200 417
+INFO 2026-04-16 13:20:29,940 basehttp 15392 7732 "GET /api/complaints/?page=1&page_size=10 HTTP/1.1" 200 417
+INFO 2026-04-16 13:22:50,307 autoreload 10588 13788 Watching for file changes with StatReloader
+INFO 2026-04-16 13:23:30,633 basehttp 15392 5600 "GET /api/complaints/?page=1&page_size=10 HTTP/1.1" 200 417
+INFO 2026-04-16 13:23:53,332 basehttp 15392 15040 "GET /api/complaints/?page=1&page_size=10 HTTP/1.1" 200 417
+INFO 2026-04-16 13:24:04,495 basehttp 15392 10136 "GET /api/complaints/?page=1&page_size=10 HTTP/1.1" 200 417
+INFO 2026-04-16 13:24:06,311 basehttp 15392 16732 "GET /api/complaints/?page=1&page_size=10 HTTP/1.1" 200 417
+INFO 2026-04-16 13:25:12,000 basehttp 15392 14232 "GET /api/complaints/?page=1&page_size=10 HTTP/1.1" 200 417
+INFO 2026-04-16 13:25:14,854 basehttp 15392 20228 "GET /api/profile/ HTTP/1.1" 200 180
+INFO 2026-04-16 13:25:26,864 basehttp 15392 12964 "POST /api/token/ HTTP/1.1" 200 783
+INFO 2026-04-16 13:25:28,207 basehttp 15392 12004 "GET /api/complaints/?page=1&page_size=10 HTTP/1.1" 200 417
+INFO 2026-04-16 13:25:30,419 basehttp 15392 18888 "GET /api/profile/ HTTP/1.1" 200 180
+INFO 2026-04-16 13:25:31,120 basehttp 15392 18940 "GET /api/complaints/?page=1&page_size=10 HTTP/1.1" 200 417
+INFO 2026-04-16 13:25:32,424 basehttp 15392 11300 "GET /api/profile/ HTTP/1.1" 200 180
+INFO 2026-04-16 13:25:42,745 basehttp 15392 5388 "POST /api/token/ HTTP/1.1" 200 783
+INFO 2026-04-16 13:27:04,279 basehttp 15392 3740 "POST /api/token/ HTTP/1.1" 200 783
+INFO 2026-04-16 13:27:11,781 basehttp 15392 14132 "GET /api/complaints/?page=1&page_size=10 HTTP/1.1" 200 417
+INFO 2026-04-16 13:27:13,428 basehttp 15392 2880 "GET /api/profile/ HTTP/1.1" 200 180
+INFO 2026-04-16 13:27:14,725 basehttp 15392 20420 "GET /api/complaints/?page=1&page_size=10 HTTP/1.1" 200 417
+INFO 2026-04-16 13:27:46,848 basehttp 15392 14816 "GET /api/profile/ HTTP/1.1" 200 180
+INFO 2026-04-16 13:27:53,093 basehttp 15392 428 "GET /api/complaints/?page=1&page_size=10 HTTP/1.1" 200 417
+INFO 2026-04-16 13:27:59,049 basehttp 15392 10972 "GET /api/complaints/1/ HTTP/1.1" 200 438
+INFO 2026-04-16 13:28:01,474 basehttp 15392 18372 "PATCH /api/complaints/1/ HTTP/1.1" 200 33
+INFO 2026-04-16 13:28:05,599 basehttp 15392 684 "PATCH /api/complaints/1/ HTTP/1.1" 200 33
+INFO 2026-04-16 13:28:06,786 basehttp 15392 4036 "GET /api/complaints/?page=1&page_size=10 HTTP/1.1" 200 417
+INFO 2026-04-16 13:28:10,633 basehttp 15392 17616 "GET /api/complaints/1/ HTTP/1.1" 200 438
+INFO 2026-04-16 13:28:13,032 basehttp 15392 9620 "PATCH /api/complaints/1/ HTTP/1.1" 200 33
+INFO 2026-04-16 13:28:15,506 basehttp 15392 14716 "PATCH /api/complaints/1/ HTTP/1.1" 200 33
+INFO 2026-04-16 13:28:16,410 basehttp 15392 20432 "GET /api/complaints/?page=1&page_size=10 HTTP/1.1" 200 417
+INFO 2026-04-16 13:28:20,772 basehttp 15392 14944 "GET /api/profile/ HTTP/1.1" 200 180
+INFO 2026-04-16 13:28:21,234 basehttp 15392 19560 "GET /api/complaints/?page=1&page_size=10 HTTP/1.1" 200 417

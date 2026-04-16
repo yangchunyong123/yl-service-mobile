@@ -339,10 +339,53 @@ class ComplaintCreateView(APIView):
     permission_classes = [IsAuthenticated]  # 需要身份验证
 
     def get(self, request, *args, **kwargs):
-        """获取所有投诉记录列表（按创建时间倒序）。"""
-        complaints = After_sales_Complaint.objects.all().order_by('-create_time')
+        """获取投诉记录列表（支持分页，按创建时间倒序）。
+        
+        查询参数:
+            page: 页码（默认1）
+            page_size: 每页数量（默认10，最大50）
+            search: 搜索关键词（项目名称/序列号/问题类型）
+        """
+        # 获取分页参数
+        page = int(request.query_params.get('page', 1))
+        page_size = min(int(request.query_params.get('page_size', 10)), 50)
+        search = request.query_params.get('search', '').strip()
+        
+        # 构建查询条件
+        queryset = After_sales_Complaint.objects.all()
+        
+        # 搜索过滤
+        if search:
+            queryset = queryset.filter(
+                Q(project_name__icontains=search) |
+                Q(serial_no__icontains=search) |
+                Q(issue_type__icontains=search)
+            )
+        
+        # 按创建时间倒序
+        queryset = queryset.order_by('-create_time')
+        
+        # 计算总数
+        total = queryset.count()
+        
+        # 分页
+        start = (page - 1) * page_size
+        end = start + page_size
+        complaints = queryset[start:end]
+        
+        # 序列化
         serializer = ComplaintListSerializer(complaints, many=True)
-        return Response(serializer.data)
+        
+        # 返回分页数据
+        return Response({
+            'results': serializer.data,
+            'total': total,
+            'page': page,
+            'page_size': page_size,
+            'total_pages': (total + page_size - 1) // page_size,
+            'has_next': end < total,
+            'has_prev': page > 1
+        })
 
     def post(self, request, *args, **kwargs):
         """创建新的投诉记录。"""

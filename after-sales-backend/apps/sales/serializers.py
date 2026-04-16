@@ -1,28 +1,105 @@
+import re
 from rest_framework import serializers
 from .models import After_sales_index_login, After_sales_Complaint
 
 
 class TokenLoginSerializer(serializers.Serializer):
     """登录接口序列化器，校验账号与密码字段。"""
-    phone = serializers.CharField()
-    password = serializers.CharField()
+    phone = serializers.CharField(
+        required=True,
+        min_length=11,
+        max_length=11,
+        error_messages={
+            'required': '手机号不能为空',
+            'min_length': '手机号必须为11位',
+            'max_length': '手机号必须为11位',
+        }
+    )
+    password = serializers.CharField(
+        required=True,
+        min_length=6,
+        max_length=128,
+        error_messages={
+            'required': '密码不能为空',
+            'min_length': '密码长度不能少于6位',
+            'max_length': '密码长度不能超过128位',
+        }
+    )
+
+    def validate_phone(self, value):
+        """验证手机号格式"""
+        if not re.match(r'^1[3-9]\d{9}$', value):
+            raise serializers.ValidationError('手机号格式不正确')
+        return value
 
 
 class RegisterSerializer(serializers.Serializer):
     """注册接口序列化器，校验注册所需字段与可选信息。"""
-    username = serializers.CharField()
-    password = serializers.CharField()
-    phone = serializers.CharField()
-    ygcode = serializers.CharField(required=False, allow_blank=True)
-    employee_id = serializers.CharField(required=False, allow_blank=True)
-    oa_name = serializers.CharField(required=False, allow_blank=True)
-    selectedOption = serializers.CharField(required=False, allow_blank=True)
+    username = serializers.CharField(
+        required=True,
+        min_length=2,
+        max_length=50,
+        error_messages={
+            'required': '用户名不能为空',
+            'min_length': '用户名长度不能少于2位',
+            'max_length': '用户名长度不能超过50位',
+        }
+    )
+    password = serializers.CharField(
+        required=True,
+        min_length=6,
+        max_length=128,
+        error_messages={
+            'required': '密码不能为空',
+            'min_length': '密码长度不能少于6位',
+            'max_length': '密码长度不能超过128位',
+        }
+    )
+    phone = serializers.CharField(
+        required=True,
+        min_length=11,
+        max_length=11,
+        error_messages={
+            'required': '手机号不能为空',
+            'min_length': '手机号必须为11位',
+            'max_length': '手机号必须为11位',
+        }
+    )
+    ygcode = serializers.CharField(required=False, allow_blank=True, max_length=20)
+    employee_id = serializers.CharField(required=False, allow_blank=True, max_length=20)
+    oa_name = serializers.CharField(required=False, allow_blank=True, max_length=50)
+    selectedOption = serializers.CharField(required=False, allow_blank=True, max_length=100)
+
+    def validate_phone(self, value):
+        """验证手机号格式"""
+        if not re.match(r'^1[3-9]\d{9}$', value):
+            raise serializers.ValidationError('手机号格式不正确')
+        return value
 
 
 class ChangePasswordSerializer(serializers.Serializer):
     """修改密码序列化器，校验旧密码与新密码字段。"""
-    old_password = serializers.CharField()
-    new_password = serializers.CharField()
+    old_password = serializers.CharField(
+        required=True,
+        error_messages={'required': '旧密码不能为空'}
+    )
+    new_password = serializers.CharField(
+        required=True,
+        min_length=6,
+        max_length=128,
+        error_messages={
+            'required': '新密码不能为空',
+            'min_length': '新密码长度不能少于6位',
+            'max_length': '新密码长度不能超过128位',
+        }
+    )
+
+    def validate_new_password(self, value):
+        """验证新密码复杂度"""
+        # 至少包含字母和数字
+        if not re.search(r'[A-Za-z]', value) or not re.search(r'\d', value):
+            raise serializers.ValidationError('密码必须同时包含字母和数字')
+        return value
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
@@ -42,6 +119,31 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
 class ComplaintCreateSerializer(serializers.ModelSerializer):
     """客诉创建序列化器，校验并保存客诉基础与处理信息。"""
+    serial_no = serializers.CharField(
+        required=True,
+        min_length=5,
+        max_length=50,
+        error_messages={
+            'required': '组件序列号不能为空',
+            'min_length': '序列号长度不能少于5位',
+            'max_length': '序列号长度不能超过50位',
+        }
+    )
+    project_name = serializers.CharField(
+        required=True,
+        min_length=2,
+        max_length=100,
+        error_messages={
+            'required': '项目名称不能为空',
+            'min_length': '项目名称长度不能少于2位',
+            'max_length': '项目名称长度不能超过100位',
+        }
+    )
+    issue_type = serializers.CharField(
+        required=True,
+        error_messages={'required': '问题类型不能为空'}
+    )
+    
     class Meta:
         model = After_sales_Complaint
         fields = (
@@ -57,6 +159,18 @@ class ComplaintCreateSerializer(serializers.ModelSerializer):
             'repair_details',
             'repairer',
         )
+    
+    def validate_serial_no(self, value):
+        """验证序列号格式（字母数字下划线中划线）"""
+        if not re.match(r'^[a-zA-Z0-9_-]+$', value):
+            raise serializers.ValidationError('序列号只能包含字母、数字、下划线和中划线')
+        return value.upper()  # 统一转为大写
+    
+    def validate_replace_serial_no(self, value):
+        """验证更换序列号格式"""
+        if value and not re.match(r'^[a-zA-Z0-9_-]+$', value):
+            raise serializers.ValidationError('更换序列号只能包含字母、数字、下划线和中划线')
+        return value.upper() if value else value
 
 
 class ComplaintListSerializer(serializers.ModelSerializer):

@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { showToast } from "vant";
 import { getComplaints } from "@/api";
+import SkeletonCard from "@/components/SkeletonCard.vue";
 
 // 路由实例
 const router = useRouter();
@@ -11,6 +12,16 @@ const searchText = ref("");
 
 // 原始客诉列表
 const complaints = ref([]);
+// 加载状态
+const loading = ref(false);
+// 刷新状态
+const refreshing = ref(false);
+// 是否还有更多数据
+const hasMore = ref(true);
+// 当前页码
+const page = ref(1);
+// 每页数量
+const pageSize = 10;
 
 // 格式化日期为 YYYY-MM-DD，value：时间字符串或时间戳
 const formatDate = (value) => {
@@ -83,16 +94,49 @@ const getStatusColor = (status) => {
   return "#43e97b";
 };
 
-// 拉取客诉列表数据
-const loadComplaints = async () => {
+// 拉取客诉列表数据，isRefresh：是否刷新
+const loadComplaints = async (isRefresh = false) => {
+  if (loading.value) return;
+  loading.value = true;
   try {
-    const res = await getComplaints();
-    complaints.value = Array.isArray(res) ? res : [];
+    const res = await getComplaints({
+      page: isRefresh ? 1 : page.value,
+      page_size: pageSize,
+    });
+    // 处理分页返回的数据格式
+    const data = res?.results || [];
+    const total = res?.total || 0;
+
+    if (isRefresh) {
+      complaints.value = data;
+      page.value = 1;
+    } else {
+      complaints.value = [...complaints.value, ...data];
+    }
+    // 判断是否还有更多数据
+    hasMore.value = complaints.value.length < total;
   } catch (error) {
     const message =
       error?.response?.data?.detail || error?.response?.data?.msg || "加载失败";
     showToast(message);
+  } finally {
+    loading.value = false;
+    refreshing.value = false;
   }
+};
+
+// 下拉刷新
+const onRefresh = async () => {
+  refreshing.value = true;
+  await loadComplaints(true);
+  showToast("刷新成功");
+};
+
+// 上拉加载更多
+const onLoadMore = async () => {
+  if (!hasMore.value) return;
+  page.value++;
+  await loadComplaints();
 };
 
 onMounted(() => {
@@ -132,52 +176,73 @@ onMounted(() => {
       </div>
     </div>
 
-    <div class="list-content">
-      <div
-        v-for="item in filteredComplaints"
-        :key="item.id"
-        class="complaint-card"
-        @click="onDetail(item.id)"
-      >
-        <div class="card-header">
-          <span class="complaint-id">{{ item.serialNo || item.id }}</span>
-          <span
-            class="status-tag"
-            :style="{
-              color: getStatusColor(item.status),
-              borderColor: getStatusColor(item.status),
-            }"
-          >
-            {{ item.status }}
-          </span>
-        </div>
-        <div class="card-body">
-          <div class="info-row">
-            <van-icon name="location-o" />
-            <span>{{ item.project }}</span>
+    <van-pull-refresh
+      v-model="refreshing"
+      @refresh="onRefresh"
+      class="list-content"
+    >
+      <!-- 骨架屏 -->
+      <template v-if="loading && complaints.length === 0">
+        <SkeletonCard v-for="i in 3" :key="i" />
+      </template>
+
+      <!-- 数据列表 -->
+      <template v-else>
+        <div
+          v-for="item in filteredComplaints"
+          :key="item.id"
+          class="complaint-card"
+          @click="onDetail(item.id)"
+        >
+          <div class="card-header">
+            <span class="complaint-id">{{ item.serialNo || item.id }}</span>
+            <span
+              class="status-tag"
+              :style="{
+                color: getStatusColor(item.status),
+                borderColor: getStatusColor(item.status),
+              }"
+            >
+              {{ item.status }}
+            </span>
           </div>
-          <div class="info-row">
-            <van-icon name="warning-o" />
-            <span>{{ item.type }}</span>
+          <div class="card-body">
+            <div class="info-row">
+              <van-icon name="location-o" />
+              <span>{{ item.project }}</span>
+            </div>
+            <div class="info-row">
+              <van-icon name="warning-o" />
+              <span>{{ item.type }}</span>
+            </div>
+            <div class="info-row date">
+              <van-icon name="clock-o" />
+              <span>{{ item.date }}</span>
+            </div>
           </div>
-          <div class="info-row date">
-            <van-icon name="clock-o" />
-            <span>{{ item.date }}</span>
+          <div class="card-footer">
+            <van-button
+              size="small"
+              plain
+              round
+              type="primary"
+              @click.stop="onDetail(item.id)"
+            >
+              查看详情
+            </van-button>
           </div>
         </div>
-        <div class="card-footer">
-          <van-button
-            size="small"
-            plain
-            round
-            type="primary"
-            @click.stop
-          >
-            查看详情
-          </van-button>
-        </div>
-      </div>
-    </div>
+
+        <!-- 加载更多 -->
+        <van-list
+          v-model:loading="loading"
+          :finished="!hasMore"
+          finished-text="没有更多了"
+          @load="onLoadMore"
+        >
+        </van-list>
+      </template>
+    </van-pull-refresh>
 
     <div class="fab-btn" @click="onAdd">
       <van-icon name="plus" />

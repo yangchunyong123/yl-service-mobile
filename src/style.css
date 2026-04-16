@@ -49,4 +49,37 @@ h1 {
   max-width: 100%;
   margin: 0;
 }
+
+/* 图片懒加载样式 */
+.lazy-loading {
+  background-color: #f0f0f0;
+  animation: shimmer 1.5s infinite;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e8e8e8 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+}
+
+.lazy-loaded {
+  animation: fadeIn 0.3s ease-in;
+}
+
+.lazy-error {
+  background-color: #f5f5f5;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }

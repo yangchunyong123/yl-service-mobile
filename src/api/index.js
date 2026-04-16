@@ -7,20 +7,20 @@ const ACCESS_TOKEN_KEY = 'token'
 const REFRESH_TOKEN_KEY = 'refreshToken'
 const USER_INFO_KEY = 'userInfo'
 
-// 后端接口基础地址
-// const API_BASE_URL = 'http://127.0.0.1:8000/api'
-const API_BASE_URL = '/api'
+// 后端接口基础地址，从环境变量读取
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
+const REQUEST_TIMEOUT = Number(import.meta.env.VITE_REQUEST_TIMEOUT) || 60000
 
 // 业务接口请求实例
 const service = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 60000
+  timeout: REQUEST_TIMEOUT
 })
 
 // 刷新令牌请求实例
 const refreshService = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 60000
+  timeout: REQUEST_TIMEOUT
 })
 
 // 获取本地 access token
@@ -177,9 +177,10 @@ export const createComplaint = async payload => {
   return res
 }
 
-// 获取客诉列表
-export const getComplaints = async () => {
-  const res = await service.get('/complaints/')
+// 获取客诉列表，支持分页和搜索
+// params: { page, page_size, search }
+export const getComplaints = async (params = {}) => {
+  const res = await service.get('/complaints/', { params })
   return res
 }
 

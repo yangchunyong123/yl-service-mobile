@@ -185,7 +185,7 @@ onMounted(() => {
       <div class="section-header" style="margin-top: 20px">
         <span class="section-title">最新动态</span>
       </div>
-      <div class="activity-list">
+      <!-- <div class="activity-list">
         <div class="activity-card">
           <div class="card-icon blue-bg"><van-icon name="volume-o" /></div>
           <div class="card-content">
@@ -202,7 +202,7 @@ onMounted(() => {
           </div>
           <div class="card-arrow"><van-icon name="arrow" /></div>
         </div>
-      </div>
+      </div> -->
 
       <div class="logout-section">
         <van-button class="tech-btn" block @click="logout">退出登录</van-button>

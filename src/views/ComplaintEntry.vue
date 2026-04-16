@@ -101,18 +101,32 @@ const onConfirmLocation = (payload) => {
 // 提交客诉单
 const onSubmit = async () => {
   try {
+    // 表单验证
+    if (!form.value.serialNo.trim()) {
+      showToast("请输入组件序列号");
+      return;
+    }
+    if (!form.value.projectName.trim()) {
+      showToast("请输入项目名称");
+      return;
+    }
+    if (!form.value.issueType) {
+      showToast("请选择问题类型");
+      return;
+    }
+
     const res = await createComplaint({
       handler: form.value.handler,
-      serial_no: form.value.serialNo,
-      project_name: form.value.projectName,
+      serial_no: form.value.serialNo.trim(),
+      project_name: form.value.projectName.trim(),
       location: form.value.location,
       is_warranty: form.value.isWarranty,
       issue_type: form.value.issueType,
-      inverter_info: form.value.inverterInfo,
+      inverter_info: form.value.inverterInfo?.trim() || "",
       process_type: form.value.processType,
-      replace_serial_no: form.value.replaceSerialNo,
+      replace_serial_no: form.value.replaceSerialNo?.trim() || "",
       repair_details: form.value.repairDetails,
-      repairer: form.value.repairer,
+      repairer: form.value.repairer?.trim() || "",
     });
     if (res?.ret !== true) {
       showToast(res?.msg || "提交失败");
